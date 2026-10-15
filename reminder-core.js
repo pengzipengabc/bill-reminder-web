@@ -1,4 +1,4 @@
-import {BANKS,validateBill,latestBills} from './core.js';
+import {BANKS,validateBill,latestBills,paidAmount,remainingAmount} from './core.js';
 export function chinaDay(now=new Date()){return new Date(+now+8*3600000).toISOString().slice(0,10);}
 export function reminderPlan(bills,{now=new Date(),offsets=[3,1,0],hour=9}={}){
  if(!Number.isFinite(+now)||!Number.isInteger(hour)||hour<0||hour>23||!offsets.length||offsets.some(x=>![0,1,3].includes(x)))throw Error('请至少选择一个提醒时间。');
@@ -16,7 +16,7 @@ export function reminderPlan(bills,{now=new Date(),offsets=[3,1,0],hour=9}={}){
  }
  return jobs.sort((a,b)=>a.at-b.at||a.id.localeCompare(b.id));
 }
-export function reminderText(job){const b=job.bill,bank=BANKS.find(x=>x.id===b.bank).name;return {title:`${bank} 尾号${b.tail} · ${job.offset===0?'今天还款':job.offset+'天后还款'}`,body:`账单 ¥${(b.amount/100).toFixed(2)}；最低 ${b.minimum===null?'待核对':'¥'+(b.minimum/100).toFixed(2)}；还款日 ${b.due}。已还请忽略并标记。`};}
+export function reminderText(job){const b=job.bill,bank=BANKS.find(x=>x.id===b.bank).name;return {title:`${bank} 尾号${b.tail} · ${job.offset===0?'今天还款':job.offset+'天后还款'}`,body:`账单 ¥${(b.amount/100).toFixed(2)}；累计已还 ¥${(paidAmount(b)/100).toFixed(2)}；剩余应还 ¥${(remainingAmount(b)/100).toFixed(2)}；原账单最低 ${b.minimum===null?'待核对':'¥'+(b.minimum/100).toFixed(2)}；还款日 ${b.due}。已还请忽略并标记。`};}
 const stamp=n=>new Date(n).toISOString().replace(/[-:]/g,'').replace(/\.\d{3}Z$/,'Z');
 const escape=s=>String(s).replace(/\\/g,'\\\\').replace(/\r\n|\r|\n/g,'\\n').replace(/;/g,'\\;').replace(/,/g,'\\,');
 function fold(s){const lines=[];let line='',size=0;for(const ch of s){const n=new TextEncoder().encode(ch).length;if(size+n>75){lines.push(line);line=' ';size=1;}line+=ch;size+=n;}lines.push(line);return lines.join('\r\n');}

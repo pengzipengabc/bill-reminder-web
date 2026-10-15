@@ -5,7 +5,7 @@ export function setupReminders({getBills,download,toast,esc,isDemo}){
  let settings={offsets:[3,1,0],hour:9,lastExport:null,confirmed:false,confirmedSignature:null,webEnabled:false},sent=new Set(),registration=null,storageOK=true;
  try{const s=JSON.parse(localStorage.getItem(key)||'null');if(s&&Array.isArray(s.offsets)&&s.offsets.length&&s.offsets.every(x=>[3,1,0].includes(x))&&Number.isInteger(s.hour)&&s.hour>=0&&s.hour<=23)settings={...settings,...s};}catch{storageOK=false;toast('提醒设置读取失败，本次使用默认设置，不会覆盖原设置。');}
  const save=()=>{if(!storageOK){toast('提醒设置无法保存，请先检查浏览器存储。');return;}try{localStorage.setItem(key,JSON.stringify(settings));}catch{toast('提醒设置未能保存，请检查浏览器存储。');}};
- const signature=()=>JSON.stringify({bills:latestBills(getBills()).map(b=>[b.id,b.period,b.due,b.amount,b.minimum,b.paid]).sort((a,b)=>String(a[0]).localeCompare(String(b[0]))),offsets:settings.offsets,hour:settings.hour});
+ const signature=()=>JSON.stringify({bills:latestBills(getBills()).map(b=>[b.id,b.period,b.due,b.amount,b.minimum,b.paid,b.payments??null]).sort((a,b)=>String(a[0]).localeCompare(String(b[0]))),offsets:settings.offsets,hour:settings.hour});
  const jobs=()=>reminderPlan(getBills(),settings);
  function render(){
   const list=latestBills(getBills()).filter(b=>!b.paid&&b.amount>0&&b.due>=chinaDay()).sort((a,b)=>a.due.localeCompare(b.due));

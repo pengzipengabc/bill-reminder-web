@@ -14,7 +14,7 @@ export function validDate(s) { if(!/^\d{4}-\d{2}-\d{2}$/.test(s)) return false; 
 export function validMonth(s){return /^\d{4}-(0[1-9]|1[0-2])$/.test(s);}
 export function daysUntil(s,today=dateKey()){return Math.round((Date.parse(s+'T00:00:00Z')-Date.parse(today+'T00:00:00Z'))/86400000);}
 export function amountToCents(s){const v=String(s).replace(/,/g,'').trim();if(!/^\d+(?:\.\d{1,2})?$/.test(v))return null;const n=Math.round(Number(v)*100);return Number.isSafeInteger(n)&&n<=9999999900?n:null;}
-export function validateBill(b){return b&&typeof b==='object'&&typeof b.id==='string'&&/^[\w-]{1,80}$/.test(b.id)&&BANKS.some(x=>x.id===b.bank)&&/^\d{4}$/.test(b.tail)&&validMonth(b.period)&&Number.isSafeInteger(b.amount)&&b.amount>=0&&b.amount<=9999999900&&(b.minimum===null||(Number.isSafeInteger(b.minimum)&&b.minimum>=0&&b.minimum<=b.amount))&&validDate(b.due)&&typeof b.paid==='boolean'&&typeof b.note==='string'&&b.note.length<=120;}
+export function validateBill(b){return b&&typeof b==='object'&&typeof b.id==='string'&&/^[\w-]{1,80}$/.test(b.id)&&BANKS.some(x=>x.id===b.bank)&&/^\d{4}$/.test(b.tail)&&validMonth(b.period)&&Number.isSafeInteger(b.amount)&&b.amount>=0&&b.amount<=9999999900&&(b.minimum===null||(Number.isSafeInteger(b.minimum)&&b.minimum>=0&&b.minimum<=b.amount))&&validDate(b.due)&&typeof b.paid==='boolean'&&typeof b.note==='string'&&b.note.length<=120&&validPayments(b.payments);}
 export function duplicateKey(b){return `${b.bank}|${b.tail}|${b.period}`;}
 export function latestBills(bills){const map=new Map();for(const b of bills){const key=`${b.bank}|${b.tail}`;const old=map.get(key);if(!old||b.period>old.period||(b.period===old.period&&(b.statementDate||'')>(old.statementDate||'')))map.set(key,b);}return [...map.values()];}
 function normalizeDate(s){const m=s.match(/(\d{4})\s*[年/.-]\s*(\d{1,2})\s*[月/.-]\s*(\d{1,2})\s*日?/);if(!m)return '';const r=`${m[1]}-${m[2].padStart(2,'0')}-${m[3].padStart(2,'0')}`;return validDate(r)?r:'';}
@@ -47,3 +47,11 @@ export function makeCalendar(bills,now=new Date()){
  lines.push('BEGIN:VEVENT',`UID:${b.id}@zhangdanyoushu.local`,`DTSTAMP:${now.toISOString().replace(/[-:]/g,'').replace(/\.\d{3}/,'')}`,`DTSTART;VALUE=DATE:${b.due.replaceAll('-','')}`,`DTEND;VALUE=DATE:${dateKey(d).replaceAll('-','')}`,`SUMMARY:${icsEscape(bank.name+'信用卡还款 · 尾号'+b.tail)}`,`DESCRIPTION:${icsEscape(desc)}`,'BEGIN:VALARM','ACTION:DISPLAY',`DESCRIPTION:${icsEscape(bank.name+'信用卡明日到期，请核对账单')}`,'TRIGGER:-P1D','END:VALARM','END:VEVENT');}
  lines.push('END:VCALENDAR');return lines.map(foldLine).join('\r\n')+'\r\n';
 }
+
+export function validPayments(payments){return payments===undefined||(Array.isArray(payments)&&payments.length<=10000&&payments.every(p=>p&&typeof p.id==='string'&&/^[\w-]{1,80}$/.test(p.id)&&Number.isSafeInteger(p.amount)&&p.amount>0&&p.amount<=9999999900&&(p.date===''||validDate(p.date)))&&new Set(payments.map(p=>p.id)).size===payments.length&&Number.isSafeInteger(payments.reduce((n,p)=>n+p.amount,0)));}
+export function paymentRecords(b){return b.payments??(b.paid&&b.amount>0?[{id:'legacy-full-payment',amount:b.amount,date:''}]:[]);}
+export function paidAmount(b){return paymentRecords(b).reduce((n,p)=>n+p.amount,0);}
+export function remainingAmount(b){return Math.max(0,b.amount-paidAmount(b));}
+export function normalizePayment(b){return {...b,paid:remainingAmount(b)===0};}
+export function addPayment(b,amount,id,date){if(!Number.isSafeInteger(amount)||amount<=0||amount>remainingAmount(b))throw Error('本次还款须大于 0，且不能超过剩余应还金额。');const payments=[...paymentRecords(b),{id,amount,date}];if(!validPayments(payments))throw Error('还款记录格式无效。');return normalizePayment({...b,payments});}
+export function removePayment(b,id){return normalizePayment({...b,payments:paymentRecords(b).filter(p=>p.id!==id)});}
