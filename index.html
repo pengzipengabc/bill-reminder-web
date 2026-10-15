@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#185a4d"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="description" content="九家银行信用卡账单导入、核对、还款日历。无需登录，账单仅保存在当前浏览器。">
+<title>账单有数 · 还款提醒</title><link rel="manifest" href="./manifest.webmanifest"><link rel="icon" href="./icon.svg" type="image/svg+xml"><link rel="stylesheet" href="./style.css">
+</head>
+<body>
+<section id="unlockGate" class="unlock-gate"><span class="brand-icon">数</span><p class="eyebrow">YOUR PRIVATE BILL REMINDERS</p><h1>你的账单，只给你看。</h1><p class="subtitle">输入私人访问口令，在这台手机上解密账单。无需登录 ChatGPT、GitHub 或银行。</p><form id="unlockForm"><label class="field">私人访问口令<input id="accessCode" type="password" autocomplete="current-password" autocapitalize="none" spellcheck="false" required placeholder="粘贴你的访问口令"></label><button id="unlockButton" class="primary wide" type="submit">打开我的账单 →</button></form><p id="unlockStatus" role="status" class="hint">口令只用于本机解密，不会提交到服务器。</p><p class="hint">使用你自己的手机。解锁后，修改记录保存在当前浏览器，不会自动跨设备同步。新账单仍需更新后重新设置提醒。</p></section><div class="app" hidden>
+<header><a href="#" class="brand" aria-label="账单有数首页"><span class="brand-icon">数</span><span>账单有数<small>让每一笔还款，心里有数。</small></span></a><button class="icon-btn" id="helpButton" aria-label="使用帮助">?</button></header>
+<main id="main">
+<section id="overview" class="view active">
+<div class="page-intro"><div><p class="eyebrow">YOUR MONEY, IN ORDER</p><h1>账单，一目了然。</h1></div><span class="local-pill"><i></i>个人账本</span></div>
+<div class="filters mode-switch"><button id="latestButton" class="selected">各卡最新一期</button><button id="periodButton">按账单月份</button></div>
+<p id="snapshotNote" class="subtitle">无需登录。请导入已有账单备份，或手动新增。</p>
+<div class="monthbar" id="monthbar" hidden><button id="prevMonth" aria-label="上个月">‹</button><label><span class="sr-only">账单月份</span><input type="month" id="month"></label><button id="nextMonth" aria-label="下个月">›</button><button id="todayMonth" class="text-btn">本月</button></div>
+<section class="summary"><div class="summary-top"><span id="totalLabel">各卡最新账单 · 金额合计</span><button id="privacyButton" aria-label="隐藏金额">隐藏金额</button></div><div class="total"><span>¥</span><strong id="total">0.00</strong></div><div class="summary-bottom"><div><small>未标记已还金额</small><b id="allTotal">¥0.00</b></div><div><small>已标记还款</small><b id="paidTotal">¥0.00</b></div><div><small>未标记已还账单</small><b id="unpaidCount">0 笔</b></div></div><div class="summary-note">账单金额不等于银行当前剩余欠款，还款状态未核实</div></section>
+<section class="reminder-banner"><div><span>别错过还款日</span><h2>把账单提醒，放进手机。</h2><p>应还金额、最低还款和日期，一起提醒。</p></div><button class="primary" id="openReminder">设置提醒 ↗</button></section>
+<div class="quick-actions"><button class="primary" id="importButton"><span>＋</span> 导入账单</button><button class="secondary" id="manualButton">手动记一笔 <span>↗</span></button></div>
+<div id="demoNotice" class="notice demo" hidden>正在查看示例数据，与真实账单分开。<button id="exitDemo">退出示例</button></div>
+<div id="overdueNotice" class="notice" hidden></div>
+<div class="section-heading"><h2><span id="listTitle" style="font-size:inherit;color:inherit;margin:0;font-weight:inherit">各卡最新账单</span> <span id="billCount">0</span></h2><button id="calendarButton" class="text-btn">还款提醒 ↗</button></div>
+<div class="filters" aria-label="账单状态筛选"><button data-filter="all" class="selected">全部</button><button data-filter="unpaid">未标记已还</button><button data-filter="paid">已标记还款</button></div>
+<div id="billList"></div>
+<div id="empty" class="empty"><div class="empty-illustration"><span>¥</span><i>✓</i></div><h3>把第一份账单放进来</h3><p>从 QQ 邮箱复制账单文字，核对后保存。<br>还款金额和日期，整理在一起。</p><button id="emptyImport" class="primary">导入第一份账单</button><button id="startRestore" class="secondary">导入已有账单备份</button><button id="demoButton" class="text-btn">先看看示例 →</button></div>
+<p class="footnote">“已还款”为手动记录，不代表银行到账状态。</p>
+</section>
+<section id="reminders" class="view">
+<p class="eyebrow">A LITTLE REMINDER, RIGHT ON TIME</p><div class="reminder-heading"><h1>还款提醒</h1><span class="local-pill" id="reminderCount">0 个账户</span></div>
+<p class="subtitle" id="reminderMode"></p>
+<div class="reminder-intro"><span class="reminder-bell" aria-hidden="true">◷</span><div><h2>关掉网页，也别忘了还款。</h2><p>把提醒导入手机日历，由手机负责通知。新账单需在网页更新后重新生成；当前没有自动读取邮箱。</p></div></div>
+<div class="setting-card reminder-settings"><h2>① 选择提醒时间</h2><p>默认提前 3 天、1 天和当天提醒。时间均为北京时间。</p>
+<div class="reminder-offsets"><label><input type="checkbox" data-reminder-offset="3" checked>提前 3 天</label><label><input type="checkbox" data-reminder-offset="1" checked>提前 1 天</label><label><input type="checkbox" data-reminder-offset="0" checked>还款当天</label></div>
+<label class="field">提醒时间<select id="reminderHour"><option value="8">上午 8:00</option><option value="9">上午 9:00</option><option value="12">中午 12:00</option><option value="18">晚上 18:00</option><option value="20">晚上 20:00</option></select></label>
+<button class="secondary" id="saveReminderSettings">保存提醒偏好</button><p class="hint">今天已错过设定时间时，可在 18:00 安排补充提醒；超过 18:00 则不补排。请留意银行实际到账截止时间。</p></div>
+<div class="setting-card reminder-settings"><h2>② 导入手机日历</h2><p id="reminderEventCount"></p><button id="reminderExport" class="primary">生成手机日历提醒</button><p id="reminderStatus" class="reminder-state" role="status"></p>
+<label class="check"><input id="calendarConfirmed" type="checkbox">我已在手机日历看到事件，并确认通知已开启</label>
+<details><summary>如何导入、更新与取消？</summary><p>下载 .ics 文件后，在支持导入的日历应用或其网页版导入。苹果和不同安卓日历的导入入口可能不同；若手机无法直接导入，请使用日历服务的网页导入功能。导入后核对事件日期、金额和通知设置，是否实际弹出需在手机上确认。</p><p>建议建立单独的“信用卡账单”日历。重新导入前先删除旧事件，避免重复。网页标记已还不会自动取消已导入的日历事件；请自行删除该卡后续提醒。</p><p>提醒文件会包含金额和卡尾号，请保存在私人日历中。日历客户端可能调整或忽略文件内通知设置，必须检查后再勾选确认。</p></details></div>
+<div class="section-heading"><h2>今天及以后到期的账单</h2></div><div id="reminderList"></div>
+<details class="setting-card"><summary>查看将生成的提醒时间</summary><ul id="reminderSchedule" class="reminder-schedule"></ul></details>
+<div class="setting-card reminder-settings"><h2>网页运行时通知（可选）</h2><p id="webReminderStatus"></p><button id="enableWebReminder" class="secondary">开启网页通知</button><button id="testWebReminder" class="secondary">发送一条测试通知</button><p class="hint">此功能只在网页运行时检查到期提醒。关闭网页、手机挂起或限制后台时，不保证检查；关闭网页后的提醒请使用上面的手机日历。通知受手机权限及勿扰设置影响。</p></div>
+<p class="footnote">金额来自已导入账单，非银行实时剩余欠款。已还请核实后处理提醒。</p></section>
+<section id="banks" class="view"><p class="eyebrow">YOUR CARDS</p><h1>我的银行</h1><p class="subtitle">为你的 9 家银行预设备选项。导入后请核对识别结果。</p><div id="bankList" class="bank-grid"></div></section>
+<section id="settings" class="view"><p class="eyebrow">KEEP IT YOURS</p><h1>数据与设置</h1><div class="setting-card"><span class="setting-icon">↙</span><h2>你的账单，保存在本机</h2><p>无需登录 ChatGPT 或 GitHub。网页不会上传你的账单；新增、修改和还款标记只保存在当前浏览器，不会自动跨设备同步。网站使用公共静态托管，访问记录由托管平台按其规则处理。更换手机、浏览器或清理网站数据前，请先导出备份；换设备后可导入恢复。</p><button id="exportButton" class="primary">导出账单备份</button><button id="restoreButton" class="secondary">从备份恢复</button><input type="file" id="backupFile" accept=".json,application/json" hidden></div><div class="setting-card"><h2>在安卓或苹果手机上使用</h2><p>用手机浏览器直接打开网址即可使用。苹果可用 Safari 添加到主屏幕，安卓可通过支持此功能的浏览器菜单添加。不同入口的数据可能不共享，请在实际使用的入口导入并备份。首次联网打开成功后，支持离线缓存的浏览器可继续查看页面；离线缓存不等于自动获取新账单。</p><p>日历导出为 .ics 文件，提醒是否生效取决于你的日历导入与通知设置。请导入后确认事件。</p></div><div class="setting-card"><h2>导入范围</h2><p>支持粘贴账单文字，以及 UTF-8 的 TXT、HTML 和 EML 邮件文件。EML 支持常见 Base64 与 quoted-printable 编码及 GBK 中文。PDF、截图、加密附件请先转为文字，或手动填写。</p><p>第一版仅记录人民币账单，不自动计算利息、分期费用或银行实时欠款。识别有疑问的字段会留空，保存前需要核对。</p></div><button id="clearButton" class="danger-link">清空本机所有真实账单</button><p class="footnote">账单有数 · 独立网页 1.0 · 无需 ChatGPT</p></section>
+</main>
+<nav aria-label="主导航"><button class="active" data-view="overview"><span>▤</span>账单</button><button data-view="reminders"><span>◷</span>提醒</button><button data-view="banks"><span>▦</span>银行</button><button data-view="settings"><span>⚙</span>设置</button></nav>
+</div>
+<dialog id="importDialog"><div class="dialog-heading"><div><p class="eyebrow">IMPORT STATEMENT</p><h2>导入账单</h2></div><button class="close" data-close aria-label="关闭">×</button></div><p class="subtitle">从 QQ 邮箱打开信用卡账单，复制正文到这里。</p><label class="field">账单文字<textarea id="statementText" placeholder="粘贴银行名称、卡号尾号、应还金额和还款日等内容…" rows="9" maxlength="200000"></textarea></label><label class="upload"><input id="statementFile" type="file" accept=".txt,.html,.htm,.eml,text/plain,text/html,message/rfc822">选择 TXT / HTML / EML 文件 <span>↑</span></label><p class="hint">文字只在当前设备处理。PDF 与图片请使用手动填写。</p><button id="parseButton" class="primary wide">识别并核对 →</button></dialog>
+<dialog id="editDialog"><div class="dialog-heading"><div><p class="eyebrow">REVIEW BEFORE SAVING</p><h2 id="editTitle">核对账单</h2></div><button class="close" data-close aria-label="关闭">×</button></div><div class="notice" id="reviewNote">请按银行账单原文核对金额和还款日。</div><form id="billForm"><label class="field">银行<select id="bankInput" required></select></label><div class="form-row"><label class="field">卡号后四位<input id="tailInput" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" placeholder="如 1234" required></label><label class="field">账单月份<input id="periodInput" type="month" required></label></div><label class="field">本期应还金额（人民币）<input id="amountInput" type="number" inputmode="decimal" min="0" max="99999999" step="0.01" placeholder="0.00" required></label><div class="form-row"><label class="field">最低还款额（选填）<input id="minimumInput" type="number" inputmode="decimal" min="0" max="99999999" step="0.01" placeholder="未填写"></label><label class="field">最后还款日<input id="dueInput" type="date" required></label></div><label class="field">备注（选填）<input id="noteInput" maxlength="120" placeholder="如：含本期分期账单"></label><label class="check"><input type="checkbox" id="confirmInput" required>我已按原始账单核对以上信息</label><button class="primary wide" type="submit">确认并保存</button></form></dialog>
+<dialog id="helpDialog"><div class="dialog-heading"><h2>从邮箱到账单，只需三步</h2><button class="close" data-close aria-label="关闭">×</button></div><ol class="steps"><li><b>复制账单</b><p>在 QQ 邮箱打开银行账单，长按选择并复制正文。不能复制时，可以手动填写。</p></li><li><b>核对并保存</b><p>点击“导入账单”，粘贴文字。核对银行、卡号尾号、账单月份、金额与还款日。</p></li><li><b>记录与提醒</b><p>还款后手动标记。可导出日历文件，在 iPhone 日历中导入并确认提醒。</p></li></ol><p class="hint">无需邮箱密码或授权码。示例数据与真实账单分开保存。</p><button data-close class="primary wide">知道了</button></dialog>
+<dialog id="confirmDialog"><div class="dialog-heading"><h2>确认操作</h2></div><p id="confirmMessage" class="subtitle"></p><div class="form-row"><button id="cancelAction" class="secondary">取消</button><button id="acceptAction" class="primary">确认</button></div></dialog>
+<div id="toast" role="status" aria-live="polite"></div><script type="module" src="./unlock.js"></script>
+<noscript><p style="padding:24px">这个账单工具需要开启浏览器 JavaScript。请使用较新的 Safari、Chrome、Edge 或系统浏览器。</p></noscript><script nomodule>document.body.insertAdjacentHTML("afterbegin","<p style=\"padding:20px;background:#fff2df\">当前浏览器版本过旧，请更新浏览器后使用。</p>");</script>
+</body></html>
