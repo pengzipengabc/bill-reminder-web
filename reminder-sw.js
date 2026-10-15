@@ -1,4 +1,4 @@
-const CACHE='bill-reminder-personal-shell-v2';
+const CACHE='bill-reminder-personal-shell-v3';
 const FILES=['./','./index.html','./app.js','./core.js','./style.css','./icon.svg','./manifest.webmanifest','./reminder-core.js','./reminders.js','./unlock.js','./locked-bills.js'];
 const allowed=new Set(FILES.map(p=>new URL(p,self.registration.scope).href));
 self.addEventListener('install',event=>{event.waitUntil(caches.open(CACHE).then(c=>c.addAll(FILES)).then(()=>self.skipWaiting()));});

@@ -85,10 +85,10 @@ $('billForm').onsubmit=async e=>{
  e.preventDefault();const min=$('minimumInput').value.trim();const b={...(editing?source().find(x=>x.id===editing):{}),id:editing||newId(),bank:$('bankInput').value,tail:$('tailInput').value.trim(),period:$('periodInput').value,amount:amountToCents($('amountInput').value),minimum:min===''?null:amountToCents(min),due:$('dueInput').value,paid:editing?(source().find(x=>x.id===editing)?.paid||false):false,note:$('noteInput').value.trim()};
  if(!validateBill(b)||!$('confirmInput').checked)return toast('请检查字段：卡尾号需 4 位，最低还款额不能超过应还金额。');
  const duplicate=source().find(x=>duplicateKey(x)===duplicateKey(b)&&x.id!==b.id);if(duplicate)return toast('该卡本月已有账单，请编辑原账单，避免重复计入。');
- const previous=source().find(x=>x.id===editing);if(previous?.paid&&(previous.amount!==b.amount||previous.due!==b.due||duplicateKey(previous)!==duplicateKey(b))){if(!await ask('金额、日期或卡片信息已修改。是否将这份账单恢复为待还款？'))return;b.paid=false;}
+ const previous=source().find(x=>x.id===editing);if(previous?.paid&&duplicateKey(previous)!==duplicateKey(b)){if(!await ask('你修改了卡片或账期，这将作为另一份待还账单保存。继续？'))return;b.paid=false;}
  const next=editing?source().map(x=>x.id===b.id?b:x):[...source(),b];if(replace(next)){$('editDialog').close();$('statementText').value='';$('month').value=b.period;showView('overview');toast(demo?'示例账单已保存':'账单已保存在本机。');}
 };
-$('billList').onclick=async e=>{const btn=e.target.closest('button');if(!btn)return;const id=btn.dataset.edit||btn.dataset.paid||btn.dataset.delete;const b=source().find(x=>x.id===id);if(!b)return;if(btn.dataset.edit)openEditor(b,true);if(btn.dataset.paid){if(!b.paid&&!await ask(`确认已向${BANKS.find(x=>x.id===b.bank).name}尾号 ${b.tail} 的卡还款？这只记录你的标记，不会执行转账。`))return;if(replace(source().map(x=>x.id===id?{...x,paid:!x.paid}:x))){render();toast(b.paid?'已恢复为待还款':'已标记还款，请留意银行到账状态。');}}if(btn.dataset.delete&&await ask('删除这份账单？此操作无法撤销。')){if(replace(source().filter(x=>x.id!==id)))render();}};
+$('billList').onclick=async e=>{const btn=e.target.closest('button');if(!btn)return;const id=btn.dataset.edit||btn.dataset.paid||btn.dataset.delete;const b=source().find(x=>x.id===id);if(!b)return;if(btn.dataset.edit)openEditor(b,true);if(btn.dataset.paid){if(b.paid&&!await ask('这期账单已标记还款。确认撤销并恢复为待还款？'))return;if(!b.paid&&!await ask(`确认已向${BANKS.find(x=>x.id===b.bank).name}尾号 ${b.tail} 的卡还款？这只记录你的标记，不会执行转账。`))return;if(replace(source().map(x=>x.id===id?{...x,paid:!x.paid}:x))){render();toast(b.paid?'已恢复为待还款':'已标记还款，请留意银行到账状态。');}}if(btn.dataset.delete&&await ask('删除这份账单？此操作无法撤销。')){if(replace(source().filter(x=>x.id!==id)))render();}};
 $('demoButton').onclick=setupDemo;$('exitDemo').onclick=()=>{demo=false;render();};
 $('calendarButton').onclick=()=>showView('reminders');
 $('openReminder').onclick=()=>showView('reminders');
@@ -106,3 +106,10 @@ let lastRenderedDay=dateKey();
 function refreshOverdueDays(){const today=dateKey();if(today!==lastRenderedDay){lastRenderedDay=today;render();}}
 setInterval(refreshOverdueDays,60000);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)refreshOverdueDays();});
+
+// Keep other open pages from displaying and overwriting stale payment marks.
+window.addEventListener('storage',event=>{
+ if(event.storageArea!==localStorage||event.key!==KEY)return;
+ try{const next=JSON.parse(event.newValue||'[]');if(!Array.isArray(next)||!next.every(validateBill))throw Error();bills=next;storageReadFailed=false;render();}
+ catch{storageReadFailed=true;toast('其他页面的账单数据异常，已暂停写入以保护已保存记录。');}
+});
