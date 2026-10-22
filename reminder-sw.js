@@ -1,5 +1,5 @@
-const CACHE='bill-reminder-personal-shell-v5';
-const FILES=['./','./index.html','./app.js','./core.js','./style.css','./icon.svg','./manifest.webmanifest','./reminder-core.js','./reminders.js','./unlock.js','./locked-bills.js'];
+const CACHE='bill-reminder-personal-shell-v6';
+const FILES=['./','./index.html','./app.js','./core.js','./mail-sync.js','./mail-sync-core.js','./style.css','./icon.svg','./manifest.webmanifest','./reminder-core.js','./reminders.js','./unlock.js','./locked-bills.js'];
 const allowed=new Set(FILES.map(p=>new URL(p,self.registration.scope).href));
 self.addEventListener('install',event=>{event.waitUntil(caches.open(CACHE).then(c=>c.addAll(FILES)).then(()=>self.skipWaiting()));});
 self.addEventListener('activate',event=>{event.waitUntil((async()=>{for(const k of await caches.keys())if((k.startsWith('bill-reminder-independent-shell-')||k.startsWith('bill-reminder-personal-shell-'))&&k!==CACHE)await caches.delete(k);await self.clients.claim();})());});

@@ -1,10 +1,11 @@
 import {setupReminders} from './reminders.js';
+import {setupAutoSync} from './mail-sync.js';
 import {BANKS,dateKey,validMonth,daysUntil,amountToCents,validateBill,duplicateKey,parseStatement,makeCalendar,latestBills,paidAmount,remainingAmount,paymentRecords,normalizePayment,addPayment,removePayment} from './core.js';
 function newId(){if(globalThis.crypto?.randomUUID)return crypto.randomUUID();const a=new Uint8Array(16);crypto.getRandomValues(a);return [...a].map(v=>v.toString(16).padStart(2,'0')).join('');}
 const $=id=>document.getElementById(id),KEY='bill-reminder-independent-v1';
 const money=n=>(n/100).toLocaleString('zh-CN',{minimumFractionDigits:2,maximumFractionDigits:2});
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-let reminderUI;
+let reminderUI,mailSyncStatus='尚未连接邮箱自动读取';
 let bills=[],demo=false,demoBills=[],filter='all',editing=null,hiddenAmounts=false,toastTimer,storageReadFailed=false,latestMode=true;
 function toast(s){$('toast').textContent=s;$('toast').classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').classList.remove('show'),4500);}
 try{const raw=localStorage.getItem(KEY);if(raw){const data=JSON.parse(raw);if(!Array.isArray(data)||!data.every(validateBill))throw Error();bills=data.map(normalizePayment);}}catch{storageReadFailed=true;toast('本机数据读取失败，已停止写入以保护原数据。请先导出原始备份。');}
@@ -22,7 +23,7 @@ function render(){
  const pending=list.filter(b=>!b.paid),sum=xs=>xs.reduce((a,b)=>a+b.amount,0);
  $('total').textContent=display(list.reduce((n,b)=>n+remainingAmount(b),0));$('allTotal').textContent='¥'+display(sum(list));$('paidTotal').textContent='¥'+display(list.reduce((n,b)=>n+paidAmount(b),0));$('unpaidCount').textContent=pending.length+' 笔';$('billCount').textContent=list.length;
  $('totalLabel').textContent=latestMode?'各卡最新账单 · 剩余应还合计':'所选账期 · 剩余应还合计';$('listTitle').textContent=latestMode?'各卡最新账单':'所选账期账单';
- $('snapshotNote').textContent=demo?'示例模式 · 与真实账单分开':`本机保存 ${bills.length} 份账单 · 无需登录 · 未自动读取邮箱，请更新每期账单。`;
+ $('snapshotNote').textContent=demo?'示例模式 · 与真实账单分开':`本机保存 ${bills.length} 份账单 · ${mailSyncStatus}。`;
  $('demoNotice').hidden=!demo;$('calendarButton').disabled=!pending.length;
  const overdue=pending.filter(b=>daysUntil(b.due)<0);$('overdueNotice').hidden=!overdue.length;$('overdueNotice').textContent=`有 ${overdue.length} 份账单已过记录的还款日且未标记还款，最长逾期 ${overdue.length?Math.max(...overdue.map(b=>-daysUntil(b.due))):0} 天。天数按记录的还款日计算，请核对银行实际状态。`;
  const shown=list.filter(b=>filter==='all'||(filter==='paid'?b.paid:!b.paid));
@@ -103,6 +104,11 @@ $('backupFile').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{if
 $('clearButton').onclick=async()=>{if(bills.length===0)return toast('本机没有真实账单。');if(await ask(`清空本机 ${bills.length} 份真实账单？建议先导出备份。此操作无法撤销。`)&&persist([])){render();toast('本机真实账单已清空。');}};
 $('latestButton').onclick=()=>setMode(true);$('periodButton').onclick=()=>setMode(false);
 reminderUI=setupReminders({getBills:source,download,toast,esc,isDemo:()=>demo});
+setupAutoSync({
+ getSavedBills:()=>{if(storageReadFailed)throw Error('本机数据异常，已暂停自动导入，请先导出原始备份。');const saved=JSON.parse(localStorage.getItem(KEY)||'[]');if(!Array.isArray(saved)||!saved.every(validateBill))throw Error('本机数据校验未通过，已暂停自动导入。');return saved;},
+ saveBills:next=>{if(!persist(next))return false;render();return true;},
+ toast,esc,isDemo:()=>demo,onStatus:status=>{mailSyncStatus=status;render();}
+});
 if('serviceWorker'in navigator)navigator.serviceWorker.register('./reminder-sw.js',{scope:'./'}).catch(()=>{});
 render();
 
